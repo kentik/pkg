@@ -45,9 +45,11 @@ type Args struct {
 	Deb     bool      `long:"deb"     description:"build a .deb package"           `
 	RPM     bool      `long:"rpm"     description:"build a .rpm package"           `
 	Format  []Package `long:"format"  description:"package format"                 `
-	Args    struct {
-		Config Config `positional-arg-name:"package.yaml" required:"true"`
-	} `positional-args:"true"`
+	Inputs  Inputs    `positional-args:"true"`
+}
+
+type Inputs struct {
+	Package Config `positional-arg-name:"package.yaml" required:"true"`
 }
 
 type Config struct {
@@ -84,28 +86,22 @@ func main() {
 
 	log.Printf("pkg %s", BuildVersion)
 
-	if err := build(WithDefaults(args)); err != nil {
+	if err := build(args); err != nil {
 		log.Fatalf("%+v", err)
 		os.Exit(1)
 	}
 }
 
 func build(args *Args) error {
-	files := map[string]string{}
-	confs := map[string]string{}
+	info, err := args.Info()
+	if err != nil {
+		return err
+	}
 
-	for path, info := range args.Args.Config.Files {
+	for _, info := range args.Inputs.Package.Files {
 		s, err := os.Stat(info.File)
 		if err != nil || !s.Mode().IsRegular() {
 			return fmt.Errorf("'%s' is not a file", info.File)
-		}
-
-		spec := fmt.Sprintf("%s:%s:%s", path, info.User, info.Mode)
-
-		if !info.Keep {
-			files[info.File] = spec
-		} else {
-			confs[info.File] = spec
 		}
 
 		if mode, err := strconv.ParseInt(info.Mode, 8, 0); err != nil {
@@ -116,23 +112,6 @@ func build(args *Args) error {
 			}
 		}
 	}
-
-	info := nfpm.WithDefaults(&nfpm.Info{
-		Name:        args.Name,
-		Arch:        "",
-		Platform:    "",
-		Version:     args.Version.String(),
-		Description: args.Args.Config.Meta.Description,
-		Vendor:      args.Args.Config.Meta.Vendor,
-		Maintainer:  args.Args.Config.Meta.Maintainer,
-		License:     args.Args.Config.Meta.License,
-		Overridables: nfpm.Overridables{
-			Files:        files,
-			ConfigFiles:  confs,
-			SystemdUnits: args.Args.Config.Units,
-			User:         args.Args.Config.User,
-		},
-	})
 
 	for pkg, file := range args.Packages() {
 		log.Printf("building %s", file)
@@ -167,20 +146,44 @@ func build(args *Args) error {
 	return nil
 }
 
-func WithDefaults(args *Args) *Args {
-	for name, file := range args.Args.Config.Files {
-		if file.User == "" {
-			file.User = "root"
+func (a *Args) Info() (*nfpm.Info, error) {
+	files := map[string]string{}
+	confs := map[string]string{}
+
+	for path, info := range a.Inputs.Package.Files {
+		if info.User == "" {
+			info.User = "root"
 		}
 
-		if file.Mode == "" {
-			file.Mode = "0644"
+		if info.Mode == "" {
+			info.Mode = "0644"
 		}
 
-		args.Args.Config.Files[name] = file
+		spec := fmt.Sprintf("%s:%s:%s", path, info.User, info.Mode)
+
+		if !info.Keep {
+			files[info.File] = spec
+		} else {
+			confs[info.File] = spec
+		}
 	}
 
-	return args
+	return nfpm.WithDefaults(&nfpm.Info{
+		Name:        a.Name,
+		Arch:        "",
+		Platform:    "",
+		Version:     a.Version.String(),
+		Description: a.Inputs.Package.Meta.Description,
+		Vendor:      a.Inputs.Package.Meta.Vendor,
+		Maintainer:  a.Inputs.Package.Meta.Maintainer,
+		License:     a.Inputs.Package.Meta.License,
+		Overridables: nfpm.Overridables{
+			Files:        files,
+			ConfigFiles:  confs,
+			SystemdUnits: a.Inputs.Package.Units,
+			User:         a.Inputs.Package.User,
+		},
+	}), nil
 }
 
 func (a *Args) Packages() map[Package]string {

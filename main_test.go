@@ -4,39 +4,85 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/goreleaser/nfpm"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConfigDefaults(t *testing.T) {
-	assert := assert.New(t)
-
-	args := &Args{
+func testArgs() *Args {
+	return &Args{
 		Name:    "test",
-		Version: Version{semver.MustParse("0.0.0")},
+		Version: Version{semver.MustParse("1.0.0")},
 		Arch:    X86_64,
 		Deb:     true,
-	}
-
-	args.Args.Config = Config{
-		Files: map[string]File{
-			"bin0": File{
-				File: "bin1",
-			},
-			"bin1": File{
-				File: "bin1",
-				Mode: "0755",
-				User: "toor",
+		RPM:     true,
+		Inputs: Inputs{
+			Package: Config{
+				Meta: Meta{
+					Description: "foo",
+					License:     "bar",
+					Vendor:      "baz",
+					Maintainer:  "quux",
+				},
 			},
 		},
 	}
+}
 
-	args = WithDefaults(args)
+func TestGenerateInfo(t *testing.T) {
+	assert := assert.New(t)
 
-	assert.Equal("root", args.Args.Config.Files["bin0"].User)
-	assert.Equal("0644", args.Args.Config.Files["bin0"].Mode)
+	args := testArgs()
+	info, err := args.Info()
+	assert.NoError(err)
 
-	assert.Equal("toor", args.Args.Config.Files["bin1"].User)
-	assert.Equal("0755", args.Args.Config.Files["bin1"].Mode)
+	assert.Equal(&nfpm.Info{
+		Overridables: nfpm.Overridables{
+			Files:       map[string]string{},
+			ConfigFiles: map[string]string{},
+		},
+		Name:        args.Name,
+		Version:     args.Version.String(),
+		Arch:        "",
+		Platform:    "linux",
+		Maintainer:  args.Inputs.Package.Meta.Maintainer,
+		Description: args.Inputs.Package.Meta.Description,
+		Vendor:      args.Inputs.Package.Meta.Vendor,
+		License:     args.Inputs.Package.Meta.License,
+	}, info)
+}
+
+func TestGenerateOverridables(t *testing.T) {
+	assert := assert.New(t)
+
+	args := testArgs()
+	args.Inputs.Package.Files = map[string]File{
+		"bin0": File{
+			File: "bin0",
+		},
+		"bin1": File{
+			File: "bin1",
+			Mode: "0755",
+			User: "toor",
+		},
+		"cfg0": File{
+			File: "cfg0",
+			Keep: true,
+		},
+	}
+
+	info, err := args.Info()
+	assert.NoError(err)
+
+	assert.Equal(nfpm.Overridables{
+		Files: map[string]string{
+			"bin0": "bin0:root:0644",
+			"bin1": "bin1:toor:0755",
+		},
+		ConfigFiles: map[string]string{
+			"cfg0": "cfg0:root:0644",
+		},
+	}, info.Overridables)
+
 }
 
 func TestUnmarshalArch(t *testing.T) {
