@@ -62,7 +62,7 @@ jobs:
       - run: chmod a+x pkg-linux-amd64
       - uses: docker/build-push-action@v1
         with:
-          repository: kentik/pkg
+          repository: ${{ github.repository }}
           tag_with_ref: true
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
