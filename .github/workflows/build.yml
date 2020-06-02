@@ -32,6 +32,7 @@ jobs:
         id: build
         run: |
           GOFLAGS="-ldflags=-X=main.BuildVersion=$VERSION"
+          export GOFLAGS
 
           CGO_ENABLED=0 go build -o $BINARY $PACKAGE
 
