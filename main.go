@@ -84,7 +84,7 @@ func main() {
 
 	log.Printf("pkg %s", BuildVersion)
 
-	if err := build(args); err != nil {
+	if err := build(WithDefaults(args)); err != nil {
 		log.Fatalf("%+v", err)
 		os.Exit(1)
 	}
@@ -100,10 +100,12 @@ func build(args *Args) error {
 			return fmt.Errorf("'%s' is not a file", info.File)
 		}
 
+		spec := fmt.Sprintf("%s:%s:%s", path, info.User, info.Mode)
+
 		if !info.Keep {
-			files[info.File] = path
+			files[info.File] = spec
 		} else {
-			confs[info.File] = path
+			confs[info.File] = spec
 		}
 
 		if mode, err := strconv.ParseInt(info.Mode, 8, 0); err != nil {
@@ -163,6 +165,22 @@ func build(args *Args) error {
 	}
 
 	return nil
+}
+
+func WithDefaults(args *Args) *Args {
+	for name, file := range args.Args.Config.Files {
+		if file.User == "" {
+			file.User = "root"
+		}
+
+		if file.Mode == "" {
+			file.Mode = "0644"
+		}
+
+		args.Args.Config.Files[name] = file
+	}
+
+	return args
 }
 
 func (a *Args) Packages() map[Package]string {
