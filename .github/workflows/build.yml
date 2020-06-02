@@ -1,0 +1,111 @@
+name: build
+
+on:
+  push:
+    branches: "*"
+    tags: "v[0-9]+.[0-9]+.[0-9]+*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin]
+        ar: [amd64]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      binary: ${{ steps.build.outputs.binary }}
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: version
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always)
+          echo version $VERSION
+          echo ::set-output name=version::$VERSION
+      - name: build
+        id: build
+        run: |
+          GOFLAGS="-ldflags=-X=main.BuildVersion=$VERSION"
+
+          CGO_ENABLED=0 go build -o $BINARY $PACKAGE
+
+          echo ::set-output name=binary::$BINARY
+        env:
+          GOOS:   ${{ matrix.os }}
+          GOARCH: ${{ matrix.ar }}
+          BINARY: pkg-${{ matrix.os }}-${{ matrix.ar }}
+          VERSION: ${{ steps.version.outputs.version }}
+      - id: test
+        run: |
+          go test -v $PACKAGE/...
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.build.outputs.binary }}
+          path: ${{ steps.build.outputs.binary }}
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v2
+        with:
+          name: pkg-linux-amd64
+      - run: chmod a+x pkg-linux-amd64
+      - uses: docker/build-push-action@v1
+        with:
+          repository: kentik/pkg
+          tag_with_ref: true
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+        env:
+          DOCKER_BUILDKIT: 1
+    needs: build
+
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create.outputs.upload_url }}
+    steps:
+      - id: create
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    needs: build
+    if: startsWith(github.ref, 'refs/tags')
+
+  assets:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin]
+        ar: [amd64]
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: pkg-${{ matrix.os }}-${{ matrix.ar }}
+      - run: "shasum *"
+      - uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: pkg-${{ matrix.os }}-${{ matrix.ar }}
+          asset_name: pkg-${{ matrix.os }}-${{ matrix.ar }}
+          asset_content_type: application/binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    needs: release
+
+env:
+  PACKAGE: github.com/kentik/pkg

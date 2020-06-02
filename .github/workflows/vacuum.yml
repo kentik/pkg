@@ -1,0 +1,14 @@
+name: vacuum
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kolpav/purge-artifacts-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          expire-in: 1 hour

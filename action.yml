@@ -1,0 +1,39 @@
+name: pkg
+description: |
+  Build a Linux .deb or .rpm package
+inputs:
+  name:
+    description: Package name
+    required: true
+  version:
+    description: Package version
+    required: true
+  arch:
+    description: Package architecture
+    required: false
+    default: "x86_64"
+  format:
+    description: Package format
+    required: true
+  package:
+    description: Package spec file
+    required: true
+outputs:
+  package:
+    description: Package file name
+runs:
+  using: docker
+  image: "docker://kentik/pkg:latest"
+  args:
+    - --name
+    - ${{ inputs.name }}
+    - --version
+    - ${{ inputs.version }}
+    - --arch
+    - ${{ inputs.arch }}
+    - --format
+    - ${{ inputs.format }}
+    - ${{ inputs.package }}
+branding:
+  color: red
+  icon: box
