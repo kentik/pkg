@@ -29,6 +29,7 @@ type Inputs struct {
 type Config struct {
 	Meta  Meta            `yaml:"meta"`
 	Files map[string]File `yaml:"files"`
+	Dirs  []string        `yaml:"dirs"`
 	Units []string        `yaml:"units"`
 	Cond  []Cond          `yaml:"conditional"`
 	User  string          `yaml:"user"`
@@ -88,6 +89,7 @@ func (a *Args) Packages() []Package {
 			Arch:    a.Arch,
 			Meta:    a.Inputs.Config.Meta,
 			Files:   a.Inputs.Config.Files,
+			Dirs:    a.Inputs.Config.Dirs,
 			Units:   a.Inputs.Config.Units,
 			Cond:    a.Inputs.Config.Cond,
 			User:    a.Inputs.Config.User,

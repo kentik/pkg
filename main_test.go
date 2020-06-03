@@ -51,6 +51,9 @@ func TestPackageOverridables(t *testing.T) {
 			Keep: true,
 		},
 	}
+	args.Inputs.Config.Dirs = []string{
+		"dir0",
+	}
 	args.Inputs.Config.Units = []string{
 		"unit0.service",
 	}
@@ -67,6 +70,9 @@ func TestPackageOverridables(t *testing.T) {
 		},
 		ConfigFiles: map[string]string{
 			"cfg0": "cfg0:root:0644",
+		},
+		EmptyFolders: []string{
+			"dir0",
 		},
 		SystemdUnits: []string{
 			"unit0.service",

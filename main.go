@@ -42,6 +42,7 @@ type Package struct {
 	Arch    Arch
 	Meta    Meta
 	Files   map[string]File
+	Dirs    []string
 	Units   []string
 	Cond    []Cond
 	User    string
@@ -137,9 +138,12 @@ func (p *Package) Filename() string {
 }
 
 func (p *Package) Info() (*nfpm.Info, error) {
-	files := map[string]string{}
-	confs := map[string]string{}
-	units := append([]string(nil), p.Units...)
+	var (
+		files = map[string]string{}
+		confs = map[string]string{}
+		dirs  = append([]string(nil), p.Dirs...)
+		units = append([]string(nil), p.Units...)
+	)
 
 	for _, cond := range p.Cond {
 		expr, err := govaluate.NewEvaluableExpression(cond.When)
@@ -195,6 +199,7 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		Overridables: nfpm.Overridables{
 			Files:        files,
 			ConfigFiles:  confs,
+			EmptyFolders: dirs,
 			SystemdUnits: units,
 			User:         p.User,
 		},
