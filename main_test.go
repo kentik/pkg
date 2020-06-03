@@ -3,36 +3,17 @@ package main
 import (
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/goreleaser/nfpm"
 	"github.com/stretchr/testify/assert"
 )
 
-func testArgs() *Args {
-	return &Args{
-		Name:    "test",
-		Version: Version{semver.MustParse("1.0.0")},
-		Arch:    X86_64,
-		Deb:     true,
-		RPM:     true,
-		Inputs: Inputs{
-			Package: Config{
-				Meta: Meta{
-					Description: "foo",
-					License:     "bar",
-					Vendor:      "baz",
-					Maintainer:  "quux",
-				},
-			},
-		},
-	}
-}
-
-func TestGenerateInfo(t *testing.T) {
+func TestPackageInfo(t *testing.T) {
 	assert := assert.New(t)
 
 	args := testArgs()
-	info, err := args.Info(DEB)
+	pkg := args.Packages()[0]
+
+	info, err := pkg.Info()
 	assert.NoError(err)
 
 	assert.Equal(&nfpm.Info{
@@ -42,20 +23,21 @@ func TestGenerateInfo(t *testing.T) {
 		},
 		Name:        args.Name,
 		Version:     args.Version.String(),
-		Arch:        "",
+		Arch:        pkg.Format.Translate(args.Arch),
 		Platform:    "linux",
-		Maintainer:  args.Inputs.Package.Meta.Maintainer,
-		Description: args.Inputs.Package.Meta.Description,
-		Vendor:      args.Inputs.Package.Meta.Vendor,
-		License:     args.Inputs.Package.Meta.License,
+		Maintainer:  args.Inputs.Config.Meta.Maintainer,
+		Description: args.Inputs.Config.Meta.Description,
+		Vendor:      args.Inputs.Config.Meta.Vendor,
+		License:     args.Inputs.Config.Meta.License,
+		Target:      "test_1.0.0-1_amd64.deb",
 	}, info)
 }
 
-func TestGenerateOverridables(t *testing.T) {
+func TestPackageOverridables(t *testing.T) {
 	assert := assert.New(t)
 
 	args := testArgs()
-	args.Inputs.Package.Files = map[string]File{
+	args.Inputs.Config.Files = map[string]File{
 		"bin0": File{
 			File: "bin0",
 		},
@@ -69,11 +51,13 @@ func TestGenerateOverridables(t *testing.T) {
 			Keep: true,
 		},
 	}
-	args.Inputs.Package.Units = []string{
+	args.Inputs.Config.Units = []string{
 		"unit0.service",
 	}
 
-	info, err := args.Info(DEB)
+	pkg := args.Packages()[0]
+
+	info, err := pkg.Info()
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
@@ -90,21 +74,37 @@ func TestGenerateOverridables(t *testing.T) {
 	}, info.Overridables)
 }
 
-func TestConfigConditional(t *testing.T) {
+func TestPackageConditional(t *testing.T) {
 	assert := assert.New(t)
 
 	var (
 		args = testArgs()
+		deb  Package
+		rpm  Package
 		info *nfpm.Info
 		err  error
 	)
 
-	args.Inputs.Package.Cond = []Cond{
+	args.Deb = true
+	args.RPM = true
+
+	args.Inputs.Config.Cond = []Cond{
 		Cond{When: `format == "deb"`, Units: []string{"deb.service"}},
 		Cond{When: `format == "rpm"`, Units: []string{"rpm.service"}},
 	}
 
-	info, err = args.Info(DEB)
+	for _, pkg := range args.Packages() {
+		switch pkg.Format {
+		case DEB:
+			deb = pkg
+		case RPM:
+			rpm = pkg
+		default:
+			panic("unreachable")
+		}
+	}
+
+	info, err = deb.Info()
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
@@ -115,7 +115,7 @@ func TestConfigConditional(t *testing.T) {
 		},
 	}, info.Overridables)
 
-	info, err = args.Info(RPM)
+	info, err = rpm.Info()
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
@@ -127,37 +127,25 @@ func TestConfigConditional(t *testing.T) {
 	}, info.Overridables)
 }
 
-func TestUnmarshalArch(t *testing.T) {
+func TestPackageTarget(t *testing.T) {
 	assert := assert.New(t)
-	expect := map[string]Arch{
-		"x86_64":  X86_64,
-		"amd64":   X86_64,
-		"aarch64": AArch64,
-		"arm64":   AArch64,
-		"armv7":   ArmV7,
-		"AMD64":   X86_64,
-	}
 
-	for value, arch := range expect {
-		tmp := Arch("")
-		err := tmp.UnmarshalFlag(value)
-		assert.NoError(err)
-		assert.Equal(arch, tmp)
-	}
-}
+	var (
+		args = testArgs()
+		info *nfpm.Info
+		err  error
+	)
 
-func TestUnmarshalPackage(t *testing.T) {
-	assert := assert.New(t)
-	expect := map[string]Package{
-		"deb": DEB,
-		"rpm": RPM,
-		"DEB": DEB,
-	}
+	args.Deb = false
+	args.RPM = false
 
-	for value, pkg := range expect {
-		tmp := Package("")
-		err := tmp.UnmarshalFlag(value)
-		assert.NoError(err)
-		assert.Equal(pkg, tmp)
-	}
+	args.Format = []Format{DEB}
+	info, err = args.Packages()[0].Info()
+	assert.NoError(err)
+	assert.Equal("test_1.0.0-1_amd64.deb", info.Target)
+
+	args.Format = []Format{RPM}
+	info, err = args.Packages()[0].Info()
+	assert.NoError(err)
+	assert.Equal("test-1.0.0-1.x86_64.rpm", info.Target)
 }
