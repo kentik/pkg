@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Knetic/govaluate"
 	"github.com/Masterminds/semver/v3"
 	"github.com/goreleaser/nfpm"
 	_ "github.com/goreleaser/nfpm/deb"
@@ -56,6 +57,7 @@ type Config struct {
 	Meta  Meta            `yaml:"meta"`
 	Files map[string]File `yaml:"files"`
 	Units []string        `yaml:"units"`
+	Cond  []Cond          `yaml:"conditional"`
 	User  string          `yaml:"user"`
 }
 
@@ -71,6 +73,15 @@ type File struct {
 	Mode string `yaml:"mode"`
 	Keep bool   `yaml:"keep"`
 	User string `yaml:"user"`
+}
+
+type Unit struct {
+	File string `yaml:"file"`
+}
+
+type Cond struct {
+	When  string   `yaml:"when"`
+	Units []string `yaml:"units"`
 }
 
 func main() {
@@ -93,28 +104,17 @@ func main() {
 }
 
 func build(args *Args) error {
-	info, err := args.Info()
-	if err != nil {
+	if err := args.Validate(); err != nil {
 		return err
-	}
-
-	for _, info := range args.Inputs.Package.Files {
-		s, err := os.Stat(info.File)
-		if err != nil || !s.Mode().IsRegular() {
-			return fmt.Errorf("'%s' is not a file", info.File)
-		}
-
-		if mode, err := strconv.ParseInt(info.Mode, 8, 0); err != nil {
-			mode := os.FileMode(mode)
-			path := info.File
-			if err := os.Chmod(path, mode); err != nil {
-				return errors.Wrapf(err, "chmod %s", mode)
-			}
-		}
 	}
 
 	for pkg, file := range args.Packages() {
 		log.Printf("building %s", file)
+
+		info, err := args.Info(pkg)
+		if err != nil {
+			return err
+		}
 
 		info.Arch = pkg.Translate(args.Arch)
 		info.Target = file
@@ -146,9 +146,52 @@ func build(args *Args) error {
 	return nil
 }
 
-func (a *Args) Info() (*nfpm.Info, error) {
+func (a *Args) Validate() error {
+	for _, info := range a.Inputs.Package.Files {
+		s, err := os.Stat(info.File)
+		if err != nil || !s.Mode().IsRegular() {
+			return fmt.Errorf("'%s' is not a file", info.File)
+		}
+
+		if mode, err := strconv.ParseInt(info.Mode, 8, 0); err != nil {
+			mode := os.FileMode(mode)
+			path := info.File
+			if err := os.Chmod(path, mode); err != nil {
+				return errors.Wrapf(err, "chmod %s", mode)
+			}
+		}
+	}
+	return nil
+}
+
+func (a *Args) Info(format Package) (*nfpm.Info, error) {
 	files := map[string]string{}
 	confs := map[string]string{}
+	units := append([]string(nil), a.Inputs.Package.Units...)
+
+	for _, cond := range a.Inputs.Package.Cond {
+		expr, err := govaluate.NewEvaluableExpression(cond.When)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		parameters := map[string]interface{}{
+			"arch":    string(a.Arch),
+			"version": a.Version.String(),
+			"format":  string(format),
+		}
+
+		result, err := expr.Evaluate(parameters)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if r, ok := result.(bool); ok && r {
+			for _, unit := range cond.Units {
+				units = append(units, unit)
+			}
+		}
+	}
 
 	for path, info := range a.Inputs.Package.Files {
 		if info.User == "" {
@@ -180,7 +223,7 @@ func (a *Args) Info() (*nfpm.Info, error) {
 		Overridables: nfpm.Overridables{
 			Files:        files,
 			ConfigFiles:  confs,
-			SystemdUnits: a.Inputs.Package.Units,
+			SystemdUnits: units,
 			User:         a.Inputs.Package.User,
 		},
 	}), nil

@@ -32,7 +32,7 @@ func TestGenerateInfo(t *testing.T) {
 	assert := assert.New(t)
 
 	args := testArgs()
-	info, err := args.Info()
+	info, err := args.Info(DEB)
 	assert.NoError(err)
 
 	assert.Equal(&nfpm.Info{
@@ -69,8 +69,11 @@ func TestGenerateOverridables(t *testing.T) {
 			Keep: true,
 		},
 	}
+	args.Inputs.Package.Units = []string{
+		"unit0.service",
+	}
 
-	info, err := args.Info()
+	info, err := args.Info(DEB)
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
@@ -81,8 +84,47 @@ func TestGenerateOverridables(t *testing.T) {
 		ConfigFiles: map[string]string{
 			"cfg0": "cfg0:root:0644",
 		},
+		SystemdUnits: []string{
+			"unit0.service",
+		},
+	}, info.Overridables)
+}
+
+func TestConfigConditional(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		args = testArgs()
+		info *nfpm.Info
+		err  error
+	)
+
+	args.Inputs.Package.Cond = []Cond{
+		Cond{When: `format == "deb"`, Units: []string{"deb.service"}},
+		Cond{When: `format == "rpm"`, Units: []string{"rpm.service"}},
+	}
+
+	info, err = args.Info(DEB)
+	assert.NoError(err)
+
+	assert.Equal(nfpm.Overridables{
+		Files:       map[string]string{},
+		ConfigFiles: map[string]string{},
+		SystemdUnits: []string{
+			"deb.service",
+		},
 	}, info.Overridables)
 
+	info, err = args.Info(RPM)
+	assert.NoError(err)
+
+	assert.Equal(nfpm.Overridables{
+		Files:       map[string]string{},
+		ConfigFiles: map[string]string{},
+		SystemdUnits: []string{
+			"rpm.service",
+		},
+	}, info.Overridables)
 }
 
 func TestUnmarshalArch(t *testing.T) {
