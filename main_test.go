@@ -22,7 +22,7 @@ func TestPackageInfo(t *testing.T) {
 			ConfigFiles: map[string]string{},
 		},
 		Name:        args.Name,
-		Version:     args.Version.String(),
+		Version:     args.Version,
 		Arch:        pkg.Format.Translate(args.Arch),
 		Platform:    "linux",
 		Maintainer:  args.Inputs.Config.Meta.Maintainer,

@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/Knetic/govaluate"
-	"github.com/Masterminds/semver/v3"
 	"github.com/goreleaser/nfpm"
 	_ "github.com/goreleaser/nfpm/deb"
 	_ "github.com/goreleaser/nfpm/rpm"
@@ -14,11 +13,8 @@ import (
 )
 
 type (
-	Arch    string
-	Format  string
-	Version struct {
-		*semver.Version
-	}
+	Arch   string
+	Format string
 )
 
 const (
@@ -38,7 +34,7 @@ var (
 type Package struct {
 	Format  Format
 	Name    string
-	Version Version
+	Version string
 	Arch    Arch
 	Meta    Meta
 	Files   map[string]File
@@ -129,9 +125,9 @@ func (p *Package) Filename() string {
 	xlated := p.Format.Translate(p.Arch)
 	switch p.Format {
 	case DEB:
-		return fmt.Sprintf("%s_%s-1_%s.deb", p.Name, p.Version.String(), xlated)
+		return fmt.Sprintf("%s_%s-1_%s.deb", p.Name, p.Version, xlated)
 	case RPM:
-		return fmt.Sprintf("%s-%s-1.%s.rpm", p.Name, p.Version.String(), xlated)
+		return fmt.Sprintf("%s-%s-1.%s.rpm", p.Name, p.Version, xlated)
 	}
 	return ""
 
@@ -153,7 +149,7 @@ func (p *Package) Info() (*nfpm.Info, error) {
 
 		parameters := map[string]interface{}{
 			"arch":    string(p.Arch),
-			"version": p.Version.String(),
+			"version": p.Version,
 			"format":  string(p.Format),
 		}
 
@@ -191,7 +187,7 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		Name:        p.Name,
 		Arch:        p.Format.Translate(p.Arch),
 		Platform:    "",
-		Version:     p.Version.String(),
+		Version:     p.Version,
 		Description: p.Meta.Description,
 		Vendor:      p.Meta.Vendor,
 		Maintainer:  p.Meta.Maintainer,
@@ -225,8 +221,4 @@ func (f Format) Translate(arch Arch) string {
 		},
 	}
 	return xlate[f][arch]
-}
-
-func (v *Version) String() string {
-	return v.Version.String()
 }

@@ -3,14 +3,13 @@ package main
 import (
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
 )
 
 func testArgs() *Args {
 	return &Args{
 		Name:    "test",
-		Version: Version{semver.MustParse("1.0.0")},
+		Version: "1.0.0",
 		Arch:    X86_64,
 		Deb:     true,
 		RPM:     false,

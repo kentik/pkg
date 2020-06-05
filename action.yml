@@ -1,4 +1,4 @@
-name: pkg
+name: Build Linux Packages
 description: |
   Build a Linux .deb or .rpm package
 inputs:

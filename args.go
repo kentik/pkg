@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -14,7 +13,7 @@ import (
 
 type Args struct {
 	Name    string   `long:"name"    description:"package name"    required:"true"`
-	Version Version  `long:"version" description:"package version" required:"true"`
+	Version string   `long:"version" description:"package version" required:"true"`
 	Arch    Arch     `long:"arch"    description:"package arch"                   `
 	Deb     bool     `long:"deb"     description:"build a .deb package"           `
 	RPM     bool     `long:"rpm"     description:"build a .rpm package"           `
@@ -97,17 +96,6 @@ func (a *Args) Packages() []Package {
 	}
 
 	return pkgs
-}
-
-func (v *Version) UnmarshalFlag(value string) error {
-	version, err := semver.NewVersion(value)
-	if err != nil {
-		return err
-	}
-
-	*v = Version{version}
-
-	return nil
 }
 
 func (a *Arch) UnmarshalFlag(value string) error {

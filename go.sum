@@ -157,10 +157,6 @@ github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
-github.com/kentik/nfpm v1.3.1-0.20200529022637-4f43e41f673c h1:hK2RuIE4R48wxLvlCesPJaAToxbnbltfuG7TtEX9pRg=
-github.com/kentik/nfpm v1.3.1-0.20200529022637-4f43e41f673c/go.mod h1:w0p7Kc9TAUgWMyrub63ex3M2Mgw88M4GZXoTq5UCb40=
-github.com/kentik/nfpm v1.3.1-0.20200603061442-01c78ea84f94 h1:kGDvMNtaafLfTZo1S/o51CONr2tDphs/an1V782p1rU=
-github.com/kentik/nfpm v1.3.1-0.20200603061442-01c78ea84f94/go.mod h1:w0p7Kc9TAUgWMyrub63ex3M2Mgw88M4GZXoTq5UCb40=
 github.com/kentik/nfpm v1.3.1-0.20200603061708-988e1152d67c h1:zKaIwBDgW0NiM32OrVPzCIOneGp8Hi/CJlAu1xNWj68=
 github.com/kentik/nfpm v1.3.1-0.20200603061708-988e1152d67c/go.mod h1:bOV6C+s6FuF0NHPg+a0LVlk/d0r9T2UCeQD+f9p/4Yk=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
