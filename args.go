@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -43,24 +42,6 @@ func ParseArgs() (*Args, error) {
 	_, err := parser.Parse()
 
 	return args, err
-}
-
-func (a *Args) Validate() error {
-	for _, info := range a.Inputs.Config.Files {
-		s, err := os.Stat(info.File)
-		if err != nil || !s.Mode().IsRegular() {
-			return fmt.Errorf("'%s' is not a file", info.File)
-		}
-
-		if mode, err := strconv.ParseInt(info.Mode, 8, 0); err != nil {
-			mode := os.FileMode(mode)
-			path := info.File
-			if err := os.Chmod(path, mode); err != nil {
-				return errors.Wrapf(err, "chmod %s", mode)
-			}
-		}
-	}
-	return nil
 }
 
 func (a *Args) Packages() []Package {

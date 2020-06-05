@@ -5,6 +5,7 @@ import (
 
 	"github.com/goreleaser/nfpm"
 	"github.com/stretchr/testify/assert"
+	"github.com/twpayne/go-vfs/vfst"
 )
 
 func TestPackageInfo(t *testing.T) {
@@ -154,4 +155,42 @@ func TestPackageTarget(t *testing.T) {
 	info, err = args.Packages()[0].Info()
 	assert.NoError(err)
 	assert.Equal("test-1.0.0-1.x86_64.rpm", info.Target)
+}
+
+func TestPackagePrepare(t *testing.T) {
+	assert := assert.New(t)
+
+	fs, cleanup, err := vfst.NewTestFS(map[string]interface{}{
+		"bin0": &vfst.File{Perm: 0o777, Contents: []byte{}},
+		"bin1": &vfst.File{Perm: 0o777, Contents: []byte{}},
+		"cfg0": &vfst.File{Perm: 0o777},
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	defer cleanup()
+
+	args := testArgs()
+	args.Inputs.Config.Files = map[string]File{
+		"bin0": File{
+			File: "/bin0",
+		},
+		"bin1": File{
+			File: "/bin1",
+			Mode: "0755",
+			User: "toor",
+		},
+	}
+
+	pkg := args.Packages()[0]
+
+	_, err = pkg.Info()
+	assert.NoError(err)
+	_, err = pkg.Prepare(fs)
+	assert.NoError(err)
+
+	vfst.RunTests(t, fs, "prepare",
+		vfst.TestPath("/bin0", vfst.TestModePerm(0o644)),
+		vfst.TestPath("/bin1", vfst.TestModePerm(0o755)),
+	)
 }

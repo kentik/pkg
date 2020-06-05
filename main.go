@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/Knetic/govaluate"
 	"github.com/goreleaser/nfpm"
 	_ "github.com/goreleaser/nfpm/deb"
 	_ "github.com/goreleaser/nfpm/rpm"
 	"github.com/pkg/errors"
+	"github.com/twpayne/go-vfs"
 )
 
 type (
@@ -75,39 +77,35 @@ func main() {
 
 	log.Printf("pkg %s", BuildVersion)
 
-	if err := build(args); err != nil {
+	if err := build(args, vfs.HostOSFS); err != nil {
 		log.Fatalf("%+v", err)
 		os.Exit(1)
 	}
 }
 
-func build(args *Args) error {
-	if err := args.Validate(); err != nil {
-		return err
-	}
-
+func build(args *Args, fs vfs.FS) error {
 	for _, pkg := range args.Packages() {
 		info, err := pkg.Info()
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		log.Printf("building %s", info.Target)
-
 		if err := nfpm.Validate(info); err != nil {
 			return errors.WithStack(err)
 		}
 
-		pkg, err := pkg.Packager()
-		if err != nil {
-			return errors.WithStack(err)
-		}
+		log.Printf("building %s", info.Target)
 
-		f, err := os.Create(info.Target)
+		f, err := fs.Create(info.Target)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 		defer f.Close()
+
+		pkg, err := pkg.Prepare(fs)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 
 		if err := pkg.Package(info, f); err != nil {
 			return errors.WithStack(err)
@@ -181,6 +179,8 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		} else {
 			confs[info.File] = spec
 		}
+
+		p.Files[path] = info
 	}
 
 	return nfpm.WithDefaults(&nfpm.Info{
@@ -203,7 +203,27 @@ func (p *Package) Info() (*nfpm.Info, error) {
 	}), nil
 }
 
-func (p *Package) Packager() (nfpm.Packager, error) {
+func (p *Package) Prepare(fs vfs.FS) (nfpm.Packager, error) {
+	for _, info := range p.Files {
+		s, err := fs.Stat(info.File)
+		if err == nil && !s.Mode().IsRegular() {
+			return nil, fmt.Errorf("'%s' is not a file", info.File)
+		} else if os.IsNotExist(err) {
+			return nil, fmt.Errorf("'%s' does not exist", info.File)
+		} else if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		mode, err := strconv.ParseInt(info.Mode, 8, 0)
+		if err != nil {
+			return nil, fmt.Errorf("invalid mode: '%s'", info.Mode)
+		}
+
+		if err := fs.Chmod(info.File, os.FileMode(mode)); err != nil {
+			return nil, errors.Wrapf(err, "chmod %s", info.Mode)
+		}
+	}
+
 	return nfpm.Get(string(p.Format))
 }
 
