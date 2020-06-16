@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,5 +59,27 @@ func TestUnmarshalFormat(t *testing.T) {
 		err := tmp.UnmarshalFlag(value)
 		assert.NoError(err)
 		assert.Equal(fmt, tmp)
+	}
+}
+
+func TestUnmarshalPhase(t *testing.T) {
+	assert := assert.New(t)
+	expect := map[string]Phase{
+		"pre-install":  PreInstall,
+		"post-install": PostInstall,
+		"pre-remove":   PreRemove,
+		"post-remove":  PostRemove,
+	}
+
+	for value, phase := range expect {
+		tmp := Phase("")
+
+		err := tmp.UnmarshalYAML(func(v interface{}) error {
+			reflect.ValueOf(v).Elem().SetString(value)
+			return nil
+		})
+
+		assert.NoError(err)
+		assert.Equal(phase, tmp)
 	}
 }

@@ -25,12 +25,13 @@ type Inputs struct {
 }
 
 type Config struct {
-	Meta  Meta            `yaml:"meta"`
-	Files map[string]File `yaml:"files"`
-	Dirs  []string        `yaml:"dirs"`
-	Units []string        `yaml:"units"`
-	Cond  []Cond          `yaml:"conditional"`
-	User  string          `yaml:"user"`
+	Meta    Meta             `yaml:"meta"`
+	Files   map[string]File  `yaml:"files"`
+	Dirs    []string         `yaml:"dirs"`
+	Units   []string         `yaml:"units"`
+	Scripts map[Phase]string `yaml:"scripts"`
+	Cond    []Cond           `yaml:"conditional"`
+	User    string           `yaml:"user"`
 }
 
 func ParseArgs() (*Args, error) {
@@ -71,6 +72,7 @@ func (a *Args) Packages() []Package {
 			Files:   a.Inputs.Config.Files,
 			Dirs:    a.Inputs.Config.Dirs,
 			Units:   a.Inputs.Config.Units,
+			Scripts: a.Inputs.Config.Scripts,
 			Cond:    a.Inputs.Config.Cond,
 			User:    a.Inputs.Config.User,
 		})
@@ -121,6 +123,23 @@ func (c *Config) UnmarshalFlag(value string) error {
 	}
 
 	*c = *cfg
+
+	return nil
+}
+
+func (p *Phase) UnmarshalYAML(un func(interface{}) error) error {
+	var phase string
+
+	if err := un(&phase); err != nil {
+		return errors.WithStack(err)
+	}
+
+	switch Phase(phase) {
+	case PreInstall, PostInstall, PreRemove, PostRemove:
+		*p = Phase(phase)
+	default:
+		return fmt.Errorf("invalid phase '%s'", phase)
+	}
 
 	return nil
 }

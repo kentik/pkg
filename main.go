@@ -17,6 +17,7 @@ import (
 type (
 	Arch   string
 	Format string
+	Phase  string
 )
 
 const (
@@ -26,6 +27,11 @@ const (
 
 	DEB Format = "deb"
 	RPM Format = "rpm"
+
+	PreInstall  Phase = "pre-install"
+	PostInstall Phase = "post-install"
+	PreRemove   Phase = "pre-remove"
+	PostRemove  Phase = "post-remove"
 )
 
 var (
@@ -42,6 +48,7 @@ type Package struct {
 	Files   map[string]File
 	Dirs    []string
 	Units   []string
+	Scripts map[Phase]string
 	Cond    []Cond
 	User    string
 }
@@ -133,10 +140,11 @@ func (p *Package) Filename() string {
 
 func (p *Package) Info() (*nfpm.Info, error) {
 	var (
-		files = map[string]string{}
-		confs = map[string]string{}
-		dirs  = append([]string(nil), p.Dirs...)
-		units = append([]string(nil), p.Units...)
+		files   = map[string]string{}
+		confs   = map[string]string{}
+		dirs    = append([]string(nil), p.Dirs...)
+		units   = append([]string(nil), p.Units...)
+		scripts nfpm.Scripts
 	)
 
 	for _, cond := range p.Cond {
@@ -183,6 +191,19 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		p.Files[path] = info
 	}
 
+	for phase, file := range p.Scripts {
+		switch phase {
+		case PreInstall:
+			scripts.PreInstall = file
+		case PostInstall:
+			scripts.PostInstall = file
+		case PreRemove:
+			scripts.PreRemove = file
+		case PostRemove:
+			scripts.PostRemove = file
+		}
+	}
+
 	return nfpm.WithDefaults(&nfpm.Info{
 		Name:        p.Name,
 		Arch:        p.Format.Translate(p.Arch),
@@ -196,6 +217,7 @@ func (p *Package) Info() (*nfpm.Info, error) {
 			Files:        files,
 			ConfigFiles:  confs,
 			EmptyFolders: dirs,
+			Scripts:      scripts,
 			SystemdUnits: units,
 			User:         p.User,
 		},
@@ -204,14 +226,20 @@ func (p *Package) Info() (*nfpm.Info, error) {
 }
 
 func (p *Package) Prepare(fs vfs.FS) (nfpm.Packager, error) {
-	for _, info := range p.Files {
-		s, err := fs.Stat(info.File)
+	check := func(path string) error {
+		s, err := fs.Stat(path)
 		if err == nil && !s.Mode().IsRegular() {
-			return nil, fmt.Errorf("'%s' is not a file", info.File)
+			return fmt.Errorf("'%s' is not a file", path)
 		} else if os.IsNotExist(err) {
-			return nil, fmt.Errorf("'%s' does not exist", info.File)
-		} else if err != nil {
-			return nil, errors.WithStack(err)
+			return fmt.Errorf("'%s' does not exist", path)
+		} else {
+			return errors.WithStack(err)
+		}
+	}
+
+	for _, info := range p.Files {
+		if err := check(info.File); err != nil {
+			return nil, err
 		}
 
 		mode, err := strconv.ParseInt(info.Mode, 8, 0)
@@ -221,6 +249,12 @@ func (p *Package) Prepare(fs vfs.FS) (nfpm.Packager, error) {
 
 		if err := fs.Chmod(info.File, os.FileMode(mode)); err != nil {
 			return nil, errors.Wrapf(err, "chmod %s", info.Mode)
+		}
+	}
+
+	for _, file := range p.Scripts {
+		if err := check(file); err != nil {
+			return nil, err
 		}
 	}
 

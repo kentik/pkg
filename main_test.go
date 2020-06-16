@@ -58,6 +58,12 @@ func TestPackageOverridables(t *testing.T) {
 	args.Inputs.Config.Units = []string{
 		"unit0.service",
 	}
+	args.Inputs.Config.Scripts = map[Phase]string{
+		PreInstall:  "script0",
+		PostInstall: "script1",
+		PreRemove:   "script2",
+		PostRemove:  "script3",
+	}
 
 	pkg := args.Packages()[0]
 
@@ -77,6 +83,12 @@ func TestPackageOverridables(t *testing.T) {
 		},
 		SystemdUnits: []string{
 			"unit0.service",
+		},
+		Scripts: nfpm.Scripts{
+			PreInstall:  "script0",
+			PostInstall: "script1",
+			PreRemove:   "script2",
+			PostRemove:  "script3",
 		},
 	}, info.Overridables)
 }
