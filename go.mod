@@ -7,10 +7,10 @@ require (
 	github.com/goreleaser/nfpm v1.3.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.6.0
+	github.com/stretchr/testify v1.6.1
 	github.com/twpayne/go-vfs v1.4.2
 	golang.org/x/tools v0.0.0-20200601175630-2caf76543d99 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace github.com/goreleaser/nfpm => github.com/kentik/nfpm v1.3.1-0.20200603061708-988e1152d67c
+replace github.com/goreleaser/nfpm => github.com/kentik/nfpm v1.3.1-0.20200617031251-4d44da492fe4

@@ -53,6 +53,8 @@ files:
     keep: true
 units:
   - etc/systemd/system/my-package.service
+scripts:
+  "post-install": scripts/post-inst
 user: foo
 ```
 
@@ -111,5 +113,5 @@ This repository is also a [GitHub Action][action].
    limitations under the License.
 
 
-[nfpm]: https://github.com/goreleaser/nfpm
+[nfpm]: https://github.com/kentik/nfpm
 [action]: https://github.com/features/actions
