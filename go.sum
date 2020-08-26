@@ -165,6 +165,8 @@ github.com/kentik/nfpm v1.3.1-0.20200603061708-988e1152d67c h1:zKaIwBDgW0NiM32Or
 github.com/kentik/nfpm v1.3.1-0.20200603061708-988e1152d67c/go.mod h1:bOV6C+s6FuF0NHPg+a0LVlk/d0r9T2UCeQD+f9p/4Yk=
 github.com/kentik/nfpm v1.3.1-0.20200617031251-4d44da492fe4 h1:A/DG8vtiYpbfaJaRL+YJK3iIxX0f1tj/WytQJYWUgPQ=
 github.com/kentik/nfpm v1.3.1-0.20200617031251-4d44da492fe4/go.mod h1:nmFhHYjD13uBLkRRZk/0a4V5XqpqnWQqqaBcD6ZTVY0=
+github.com/kentik/nfpm v1.3.1-0.20200826053905-b30b78b4a5d5 h1:Og4JNcQXf8FGVxeE6oKKHMHyy9GXz8ElNUa49L+7Mm8=
+github.com/kentik/nfpm v1.3.1-0.20200826053905-b30b78b4a5d5/go.mod h1:nmFhHYjD13uBLkRRZk/0a4V5XqpqnWQqqaBcD6ZTVY0=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/gotool v1.0.0 h1:AV2c/EiW3KqPNT9ZKl07ehoAGi4C5/01Cfbblndcapg=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=

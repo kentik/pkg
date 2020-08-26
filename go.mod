@@ -13,4 +13,4 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace github.com/goreleaser/nfpm => github.com/kentik/nfpm v1.3.1-0.20200617031251-4d44da492fe4
+replace github.com/goreleaser/nfpm => github.com/kentik/nfpm v1.3.1-0.20200826053905-b30b78b4a5d5
