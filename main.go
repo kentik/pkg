@@ -119,7 +119,7 @@ func build(args *Args, fs vfs.FS) error {
 		}
 
 		if GithubAction {
-			fmt.Println("::set-output name=package::", info.Target)
+			fmt.Printf("::set-output name=package::%s\n", info.Target)
 		}
 	}
 
