@@ -26,6 +26,7 @@ type Inputs struct {
 
 type Config struct {
 	Meta    Meta             `yaml:"meta"`
+	Depends []string         `yaml:"depends"`
 	Files   map[string]File  `yaml:"files"`
 	Dirs    []string         `yaml:"dirs"`
 	Units   []string         `yaml:"units"`
@@ -69,6 +70,7 @@ func (a *Args) Packages() []Package {
 			Version: a.Version,
 			Arch:    a.Arch,
 			Meta:    a.Inputs.Config.Meta,
+			Depends: a.Inputs.Config.Depends,
 			Files:   a.Inputs.Config.Files,
 			Dirs:    a.Inputs.Config.Dirs,
 			Units:   a.Inputs.Config.Units,

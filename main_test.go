@@ -38,6 +38,9 @@ func TestPackageOverridables(t *testing.T) {
 	assert := assert.New(t)
 
 	args := testArgs()
+	args.Inputs.Config.Depends = []string{
+		"dep0",
+	}
 	args.Inputs.Config.Files = map[string]File{
 		"bin0": File{
 			File: "bin0",
@@ -71,6 +74,9 @@ func TestPackageOverridables(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
+		Depends: []string{
+			"dep0",
+		},
 		Files: map[string]string{
 			"bin0": "bin0:root:0644",
 			"bin1": "bin1:toor:0755",
@@ -108,6 +114,8 @@ func TestPackageConditional(t *testing.T) {
 	args.RPM = true
 
 	args.Inputs.Config.Cond = []Cond{
+		Cond{When: `format == "deb"`, Depends: []string{"deb-dep"}},
+		Cond{When: `format == "rpm"`, Depends: []string{"rpm-dep"}},
 		Cond{When: `format == "deb"`, Units: []string{"deb.service"}},
 		Cond{When: `format == "rpm"`, Units: []string{"rpm.service"}},
 	}
@@ -127,6 +135,9 @@ func TestPackageConditional(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
+		Depends: []string{
+			"deb-dep",
+		},
 		Files:       map[string]string{},
 		ConfigFiles: map[string]string{},
 		SystemdUnits: []string{
@@ -138,6 +149,9 @@ func TestPackageConditional(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal(nfpm.Overridables{
+		Depends: []string{
+			"rpm-dep",
+		},
 		Files:       map[string]string{},
 		ConfigFiles: map[string]string{},
 		SystemdUnits: []string{

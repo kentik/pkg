@@ -45,6 +45,7 @@ type Package struct {
 	Version string
 	Arch    Arch
 	Meta    Meta
+	Depends []string
 	Files   map[string]File
 	Dirs    []string
 	Units   []string
@@ -72,8 +73,9 @@ type Unit struct {
 }
 
 type Cond struct {
-	When  string   `yaml:"when"`
-	Units []string `yaml:"units"`
+	When    string   `yaml:"when"`
+	Depends []string `yaml:"depends"`
+	Units   []string `yaml:"units"`
 }
 
 func main() {
@@ -140,6 +142,7 @@ func (p *Package) Filename() string {
 
 func (p *Package) Info() (*nfpm.Info, error) {
 	var (
+		depends = append([]string(nil), p.Depends...)
 		files   = map[string]string{}
 		confs   = map[string]string{}
 		dirs    = append([]string(nil), p.Dirs...)
@@ -165,6 +168,10 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		}
 
 		if r, ok := result.(bool); ok && r {
+			for _, dep := range cond.Depends {
+				depends = append(depends, dep)
+			}
+
 			for _, unit := range cond.Units {
 				units = append(units, unit)
 			}
@@ -214,6 +221,7 @@ func (p *Package) Info() (*nfpm.Info, error) {
 		Maintainer:  p.Meta.Maintainer,
 		License:     p.Meta.License,
 		Overridables: nfpm.Overridables{
+			Depends:      depends,
 			Files:        files,
 			ConfigFiles:  confs,
 			EmptyFolders: dirs,
