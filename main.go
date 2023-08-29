@@ -121,7 +121,16 @@ func build(args *Args, fs vfs.FS) error {
 		}
 
 		if GithubAction {
-			fmt.Printf("::set-output name=package::%s\n", info.Target)
+			path := os.Getenv("GITHUB_OUTPUT")
+			mode := os.O_APPEND | os.O_WRONLY
+
+			file, err := os.OpenFile(path, mode, 0)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			fmt.Fprintf(file, "package=%s\n", info.Target)
 		}
 	}
 
