@@ -52,6 +52,9 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -60,12 +63,21 @@ jobs:
         with:
           name: pkg-linux-amd64
       - run: chmod a+x pkg-linux-amd64
+      - name: OIDC token
+        id: docker_oidc
+        uses: docker/oidc-action@96ba694c64860c7209bcd1ede7d698c71564ef78 # v1.2.0
+        with:
+          connection-id: "24b78b4d-ffde-4850-a999-76d7bbaf3214"
+          expires-in: 1800
+      - name: Docker login
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: kentik
+          password: ${{ steps.docker_oidc.outputs.token }}
       - uses: docker/build-push-action@v1
         with:
           repository: ${{ github.repository }}
           tag_with_ref: true
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
         env:
           DOCKER_BUILDKIT: 1
     needs: build
